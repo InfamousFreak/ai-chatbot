@@ -124,7 +124,7 @@ export default function Home() {
 
   // NOTE: For production, create a .env.local file in your project root and add:
   // NEXT_PUBLIC_BACKEND_URL=http://your-hosted-backend-url.com/ask
-  const backendUrl = 'http://127.0.0.1:8000/ask';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
 
   // Load chat history from localStorage on initial render
   useEffect(() => {
