@@ -125,7 +125,7 @@ class GeminiProvider implements AIProvider {
     
     try {
       // Build parts array with text and files
-      const parts: any[] = [{ text: messageContent }];
+      const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: messageContent }];
       
       // Add file parts if any files are attached
       for (const file of files) {
@@ -194,7 +194,7 @@ class PublicAIProvider implements AIProvider {
         const data = await response.json();
         return data.generations[0]?.text?.trim() || 'Hello! I\'m working in free mode.';
       }
-    } catch (error) {
+    } catch {
       console.log('Public API unavailable, using fallback');
     }
 

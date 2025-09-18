@@ -4,8 +4,14 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { Send, Plus, Menu, User, Bot, Paperclip, AlertCircle, X, Upload } from 'lucide-react';
 import { fileUploadHandler, type UploadedFile } from '@/lib/fileUpload';
 
-// Import Message type from AI SDK
-import type { Message } from '@ai-sdk/react';
+// Define Message type locally
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  createdAt?: Date;
+  files?: UploadedFile[];
+}
 
 // Memoized component for chat messages to prevent re-renders and handle hydration-safe timestamps
 const MessageComponent = memo(({ message }: { message: Message }) => {
