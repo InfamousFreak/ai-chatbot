@@ -1,10 +1,10 @@
-// File upload utilities for Gemini Pro
+// File upload utilities for OpenAI
 export interface UploadedFile {
   name: string;
   type: string;
   size: number;
   content: string; // base64 encoded
-  uri?: string; // For Gemini File API
+  uri?: string; // For OpenAI File API
 }
 
 export class FileUploadHandler {
@@ -46,8 +46,8 @@ export class FileUploadHandler {
     });
   }
 
-  formatFileForGemini(file: UploadedFile) {
-    // For Gemini Pro, we can directly include file content in the request
+  formatFileForOpenAI(file: UploadedFile) {
+    // For OpenAI, we can directly include file content in the request
     if (file.type.startsWith('image/')) {
       return {
         inlineData: {
