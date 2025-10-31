@@ -24,7 +24,7 @@ class HuggingFaceProvider implements AIProvider {
 
   async chat(messages: ChatMessage[]): Promise<string> {
     const lastMessage = messages[messages.length - 1]?.content || 'Hello';
-    
+
     try {
       const response = await fetch(
         `https://api-inference.huggingface.co/models/${this.model}`,
@@ -71,7 +71,7 @@ class HuggingFaceLlamaProvider implements AIProvider {
   async chat(messages: ChatMessage[]): Promise<string> {
     const conversation = messages.map(m => `${m.role}: ${m.content}`).join('\n');
     const prompt = `${conversation}\nassistant:`;
-    
+
     try {
       const response = await fetch(
         `https://api-inference.huggingface.co/models/${this.model}`,
@@ -98,7 +98,7 @@ class HuggingFaceLlamaProvider implements AIProvider {
 
       const data = await response.json();
       let result = data[0]?.generated_text || data.generated_text || '';
-      
+
       // Clean up the response
       result = result.replace(prompt, '').trim();
       return result || 'I apologize, but I couldn\'t generate a proper response.';
@@ -109,61 +109,40 @@ class HuggingFaceLlamaProvider implements AIProvider {
   }
 }
 
-// Google Gemini API (FREE - 15 RPM, 1M tokens/month)
-class GeminiProvider implements AIProvider {
-  name = 'Google Gemini';
+// GPT-3.5-turbo API Provider (replacement for Google Gemini)
+class GPTProvider implements AIProvider {
+  name = 'GPT-3.5-turbo';
   private apiKey: string;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.GOOGLE_API_KEY || '';
+    this.apiKey = apiKey || process.env.OPENAI_API_KEY || '';
   }
 
   async chat(messages: ChatMessage[]): Promise<string> {
-    const lastMessage = messages[messages.length - 1];
-    const messageContent = lastMessage?.content || 'Hello';
-    const files = lastMessage?.files || [];
-    
     try {
-      // Build parts array with text and files
-      const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: messageContent }];
-      
-      // Add file parts if any files are attached
-      for (const file of files) {
-        const filePart = fileUploadHandler.formatFileForGemini(file);
-        parts.push(filePart);
-      }
-    
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${this.apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: parts
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1000,
-              topP: 0.8,
-              topK: 40,
-            }
-          }),
-        }
-      );
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          max_completion_tokens: 1000
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Gemini API Error Details:', errorText);
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        console.error('GPT-3.5-Turbo Mini API Error Details:', errorText);
+        throw new Error(`GPT-3.5-Turbo Mini API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I couldn\'t generate a response.';
+      return data.choices?.[0]?.message?.content || 'Sorry, I couldn\'t generate a response.';
     } catch (error) {
-      console.error('Gemini error:', error);
+      console.error('GPT-3.5-Turbo error:', error);
       throw error;
     }
   }
@@ -175,7 +154,7 @@ class PublicAIProvider implements AIProvider {
 
   async chat(messages: ChatMessage[]): Promise<string> {
     const lastMessage = messages[messages.length - 1]?.content || 'Hello';
-    
+
     try {
       // Using a public endpoint (this is just an example - many exist)
       const response = await fetch('https://api.cohere.ai/v1/generate', {
@@ -204,25 +183,35 @@ class PublicAIProvider implements AIProvider {
       `Thanks for your message about "${lastMessage.substring(0, 30)}...". I'm a demo AI assistant running on free APIs.`,
       `Your chatbot interface is working great! You asked: "${lastMessage}". This is a free demo response.`,
     ];
-    
+
     return responses[Math.floor(Math.random() * responses.length)];
   }
 }
 
 // Factory to get the best available free provider
 export function getFreeAIProvider(): AIProvider {
-  // Try Google Gemini first (highest quality free option)
-  if (process.env.GOOGLE_API_KEY) {
-    return new GeminiProvider();
+  // Try GPT-3.5-Turbo first (highest quality free option)
+  if (process.env.OPENAI_API_KEY) {
+    return new GPTProvider();
   }
-  
+
+  // Then Google Gemini fallback (if still desired, otherwise remove)
+  // if (process.env.GOOGLE_API_KEY) {
+  //   return new GeminiProvider();
+  // }
+
   // Try Hugging Face (good free option)
   if (process.env.HUGGINGFACE_API_KEY) {
     return new HuggingFaceLlamaProvider();
   }
-  
+
   // Fallback to public/demo provider (always works)
   return new PublicAIProvider();
 }
 
-export { HuggingFaceProvider, HuggingFaceLlamaProvider, GeminiProvider, PublicAIProvider };
+export {
+  HuggingFaceProvider,
+  HuggingFaceLlamaProvider,
+  GPTProvider,
+  PublicAIProvider
+};
