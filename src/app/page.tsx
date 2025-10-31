@@ -23,10 +23,10 @@ const MessageComponent = memo(({ message }: { message: Message }) => {
   const timestamp = isClient ? new Date(message.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
-    <div key={message.id} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div key={message.id} className={`flex gap-2 md:gap-3 ${isUser ? 'justify-end' : 'justify-start'} px-2 sm:px-4`}>
       {!isUser && (
-        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-          <Bot className="w-4 h-4" />
+        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+          <Bot className="w-3 h-3 sm:w-4 sm:h-4" />
         </div>
       )}
       <div className={`max-w-xs lg:max-w-md xl:max-w-lg px-4 py-2 rounded-lg ${isUser ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
@@ -34,8 +34,8 @@ const MessageComponent = memo(({ message }: { message: Message }) => {
         <div className={`text-xs mt-1 ${isUser ? 'text-blue-200' : 'text-slate-400'}`}>{timestamp}</div>
       </div>
       {isUser && (
-        <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
-          <User className="w-4 h-4" />
+        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
+          <User className="w-3 h-3 sm:w-4 sm:h-4" />
         </div>
       )}
     </div>
@@ -43,8 +43,9 @@ const MessageComponent = memo(({ message }: { message: Message }) => {
 });
 MessageComponent.displayName = 'MessageComponent';
 
-// Main UI Component
-const ChatbotUI: React.FC = () => {
+// Main component
+export default function ChatPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -230,9 +231,26 @@ const ChatbotUI: React.FC = () => {
   }, [input]);
 
   return (
-    <div className="flex h-screen bg-slate-900 text-white font-sans">
-      {/* Sidebar */}
-      <div className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+    <div className="flex h-screen bg-slate-900">
+      {/* Overlay for mobile when sidebar is open */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - hidden on mobile by default, shown when hamburger clicked */}
+      <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-800 border-r border-slate-700 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+        {/* Close button for mobile */}
+        <div className="lg:hidden absolute top-4 right-4">
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-2 hover:bg-slate-700 rounded-lg"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
         <div className="p-4 border-b border-slate-700">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"><Bot className="w-5 h-5" /></div>
@@ -270,16 +288,25 @@ const ChatbotUI: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-slate-700 bg-slate-800">
-          <div className="flex items-center gap-3">
-            <Menu className="w-5 h-5 text-slate-400" />
-            <span className="font-medium">Railways AI Assistant</span>
+        {/* Header with hamburger menu */}
+        <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center gap-3">
+          {/* Hamburger menu button - only visible on mobile */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="lg:hidden p-2 hover:bg-slate-700 rounded-lg"
+          >
+            <Menu className="w-6 h-6 text-white" />
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <Bot className="w-6 h-6 text-blue-500" />
+            <h1 className="text-lg font-semibold text-white">AI Chat Assistant</h1>
           </div>
-        </div>
+        </header>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => <MessageComponent key={message.id} message={message} />)}
           {isLoading && (
@@ -296,7 +323,7 @@ const ChatbotUI: React.FC = () => {
           )}
           <div ref={messagesEndRef} />
         </div>
-        <div className="p-4 border-t border-slate-700 bg-slate-800">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 bg-slate-800 border-t border-slate-700">
           {/* File Attachments Preview */}
           {attachedFiles.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
@@ -318,25 +345,19 @@ const ChatbotUI: React.FC = () => {
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-            <input
-              type="file"
-              multiple
-              accept=".txt,.md,.csv,.json,.pdf,.docx,.png,.jpg,.jpeg,.webp,.gif"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="file-upload"
-              disabled={isUploading || isLoading}
-            />
-            <label htmlFor="file-upload">
-              <button 
-                className={`p-2 transition-colors ${
-                  isUploading || isLoading 
-                    ? 'text-slate-500 cursor-not-allowed' 
-                    : 'text-slate-400 hover:text-slate-300 cursor-pointer'
-                }`} 
-                title="Attach file (Images, Documents, Text files)" 
+          <div className="flex gap-2 items-end">
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <input
+                id="file-upload"
+                type="file"
+                accept=".txt,.pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={isUploading || isLoading}
+              />
+              <button
                 type="button"
+                className="p-2 sm:p-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isUploading || isLoading}
                 onClick={(e) => {
                   e.preventDefault();
@@ -363,24 +384,22 @@ const ChatbotUI: React.FC = () => {
                   }
                 }}
                 placeholder="Ask anything..."
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] max-h-[120px] overflow-y-auto"
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 sm:py-3 lg:py-3 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[56px] sm:min-h-[44px] max-h-[160px] sm:max-h-[120px] overflow-y-auto text-base"
                 rows={1}
+                disabled={isLoading}
               />
             </div>
             <button
               type="submit"
-              disabled={isLoading || !input || input.trim() === ''}
-              className="p-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
-              title="Send message"
+              disabled={(!input.trim() && attachedFiles.length === 0) || isLoading}
+              className="p-3 sm:p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5" />
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
-};
-
-export default ChatbotUI;
+}
 
